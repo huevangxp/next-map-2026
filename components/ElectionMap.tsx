@@ -12,14 +12,7 @@ import type {
   LineLayerSpecification as LineLayer,
 } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
-import type { ProvinceElectionData } from "@/lib/election-data";
-import "maplibre-gl/dist/maplibre-gl.css";
-
-interface ElectionMapProps {
-  geoJson: FeatureCollection;
-  electionData: ProvinceElectionData[];
-  onProvinceSelect: (provinceId: string | null) => void;
-}
+import { cityData } from "@/lib/city-data";
 
 export default function ElectionMap({
   geoJson,
@@ -29,6 +22,77 @@ export default function ElectionMap({
   const mapRef = useRef<any>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // ... (existing code for bounds and feature mapping) ...
+
+  // Derive cities for selected province
+  const citiesGeoJson = useMemo(() => {
+    if (!selectedId) return null;
+    const cities = cityData.filter(c => c.provinceId === selectedId);
+    return {
+      type: "FeatureCollection",
+      features: cities.map((city, index) => ({
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: city.coordinates
+        },
+        properties: {
+          name: city.name,
+          id: index
+        }
+      }))
+    };
+  }, [selectedId]);
+
+  // ... (existing helper functions) ...
+
+  return (
+    <div className="w-full h-full relative group bg-zinc-100 dark:bg-zinc-950">
+      <ReactMap
+        // ... (existing props) ...
+      >
+        {/* Existing Sources/Layers */}
+        
+        {/* City Markers Layer */}
+        {citiesGeoJson && (
+          <Source id="election-cities" type="geojson" data={citiesGeoJson as any}>
+            <Layer
+              id="cities-circle"
+              type="circle"
+              paint={{
+                "circle-color": "#ffffff",
+                "circle-radius": 5,
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "#000000",
+              }}
+            />
+            <Layer
+              id="cities-label"
+              type="symbol"
+              layout={{
+                "text-field": ["get", "name"],
+                "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+                "text-size": 12,
+                "text-offset": [0, 1.25],
+                "text-anchor": "top",
+              }}
+              paint={{
+                "text-color": "#000000",
+                "text-halo-color": "#ffffff",
+                "text-halo-width": 2,
+              }}
+            />
+          </Source>
+        )}
+
+        <NavigationControl position="top-right" showCompass={false} />
+        {/* ... */}
+      </ReactMap>
+      {/* ... */}
+    </div>
+  );
+}
 
   // Calculate province bounds and feature mapping
   const provinceFeatureIds = useMemo(() => {
