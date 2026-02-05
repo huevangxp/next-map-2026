@@ -6,6 +6,7 @@ import ReactMap, {
   ScaleControl,
   FullscreenControl,
   MapLayerMouseEvent,
+  Popup,
 } from "react-map-gl/maplibre";
 import type {
   FillLayerSpecification as FillLayer,
@@ -122,7 +123,7 @@ export default function ElectionMap({
     const bounds = provinceFeatureIds.boundsMap.get(selectedId);
     if (bounds) {
       const [minX, minY, maxX, maxY] = bounds;
-      const padding = 50;
+      const padding = 100; // Increased padding slightly for popup space
 
       map.fitBounds(
         [
@@ -282,6 +283,23 @@ export default function ElectionMap({
     };
   }, [geoJson, fillColorExpression]);
 
+  // Derive popup info
+  const selectedProvinceData = useMemo(() => {
+    if (!selectedId) return null;
+    return electionData.find((d) => d.id === selectedId);
+  }, [selectedId, electionData]);
+
+  const selectedProvinceCenter = useMemo(() => {
+    if (!selectedId) return null;
+    const bounds = provinceFeatureIds.boundsMap.get(selectedId);
+    if (!bounds) return null;
+    const [minX, minY, maxX, maxY] = bounds;
+    return {
+      longitude: (minX + maxX) / 2,
+      latitude: (minY + maxY) / 2,
+    };
+  }, [selectedId, provinceFeatureIds]);
+
   return (
     <div className="w-full h-full relative group">
       <ReactMap
@@ -303,6 +321,54 @@ export default function ElectionMap({
         <NavigationControl position="top-right" />
         <ScaleControl />
         <FullscreenControl position="top-right" />
+
+        {selectedId && selectedProvinceData && selectedProvinceCenter && (
+          <Popup
+            longitude={selectedProvinceCenter.longitude}
+            latitude={selectedProvinceCenter.latitude}
+            anchor="bottom"
+            onClose={() => {
+              setSelectedId(null);
+              onProvinceSelect(null);
+            }}
+            closeOnClick={false}
+            className="z-50"
+          >
+            <div className="p-2 min-w-[200px]">
+              <h3 className="text-lg font-bold text-gray-900 mb-2 border-b pb-1">
+                {selectedProvinceData.provinceName}
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Party:</span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor: selectedProvinceData.partyColor,
+                      }}
+                    />
+                    <span className="font-semibold text-gray-800">
+                      {selectedProvinceData.winningParty}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Candidate:</span>
+                  <span className="font-medium text-gray-800">
+                    {selectedProvinceData.candidate}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Votes:</span>
+                  <span className="font-mono font-bold text-gray-900">
+                    {selectedProvinceData.totalVotes.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Popup>
+        )}
       </ReactMap>
 
       {/* Overlay to show Lao colors integration */}
