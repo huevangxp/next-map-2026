@@ -6,13 +6,19 @@ import ReactMap, {
   ScaleControl,
   FullscreenControl,
   MapLayerMouseEvent,
+  Source,
+  Layer,
 } from "react-map-gl/maplibre";
-import type {
-  FillLayerSpecification as FillLayer,
-  LineLayerSpecification as LineLayer,
-} from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
+import type { ProvinceElectionData } from "@/lib/election-data";
 import { cityData } from "@/lib/city-data";
+import "maplibre-gl/dist/maplibre-gl.css";
+
+interface ElectionMapProps {
+  geoJson: FeatureCollection;
+  electionData: ProvinceElectionData[];
+  onProvinceSelect: (provinceId: string | null) => void;
+}
 
 export default function ElectionMap({
   geoJson,
@@ -23,80 +29,29 @@ export default function ElectionMap({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // ... (existing code for bounds and feature mapping) ...
-
   // Derive cities for selected province
   const citiesGeoJson = useMemo(() => {
     if (!selectedId) return null;
-    const cities = cityData.filter(c => c.provinceId === selectedId);
+    const cities = cityData.filter((c) => c.provinceId === selectedId);
     return {
       type: "FeatureCollection",
       features: cities.map((city, index) => ({
         type: "Feature",
         geometry: {
           type: "Point",
-          coordinates: city.coordinates
+          coordinates: city.coordinates,
         },
         properties: {
           name: city.name,
-          id: index
-        }
-      }))
+          id: index,
+        },
+      })),
     };
   }, [selectedId]);
 
-  // ... (existing helper functions) ...
-
-  return (
-    <div className="w-full h-full relative group bg-zinc-100 dark:bg-zinc-950">
-      <ReactMap
-        // ... (existing props) ...
-      >
-        {/* Existing Sources/Layers */}
-        
-        {/* City Markers Layer */}
-        {citiesGeoJson && (
-          <Source id="election-cities" type="geojson" data={citiesGeoJson as any}>
-            <Layer
-              id="cities-circle"
-              type="circle"
-              paint={{
-                "circle-color": "#ffffff",
-                "circle-radius": 5,
-                "circle-stroke-width": 2,
-                "circle-stroke-color": "#000000",
-              }}
-            />
-            <Layer
-              id="cities-label"
-              type="symbol"
-              layout={{
-                "text-field": ["get", "name"],
-                "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-                "text-size": 12,
-                "text-offset": [0, 1.25],
-                "text-anchor": "top",
-              }}
-              paint={{
-                "text-color": "#000000",
-                "text-halo-color": "#ffffff",
-                "text-halo-width": 2,
-              }}
-            />
-          </Source>
-        )}
-
-        <NavigationControl position="top-right" showCompass={false} />
-        {/* ... */}
-      </ReactMap>
-      {/* ... */}
-    </div>
-  );
-}
-
   // Calculate province bounds and feature mapping
   const provinceFeatureIds = useMemo(() => {
-    const featureMap = new Map<string, string>(); // Map fips -> fips (since we use promoteId: 'fips', feature.id IS fips)
+    const featureMap = new Map<string, string>(); // Map fips -> fips
     const boundsMap = new Map<string, [number, number, number, number]>();
 
     if (!geoJson) return { featureMap, boundsMap };
@@ -104,10 +59,8 @@ export default function ElectionMap({
     geoJson.features.forEach((feature: any) => {
       const provinceId = feature.properties?.fips;
       if (provinceId) {
-        // Since we set promoteId: 'fips', the feature ID state will be keyed by 'fips'.
         featureMap.set(provinceId, provinceId);
 
-        // Calculate bounds for this province
         if (feature.geometry?.type === "Polygon") {
           const coordinates = feature.geometry.coordinates[0];
           let minX = Infinity,
@@ -122,7 +75,6 @@ export default function ElectionMap({
           });
           boundsMap.set(provinceId, [minX, minY, maxX, maxY]);
         } else if (feature.geometry?.type === "MultiPolygon") {
-          // Simple bounds for MultiPolygon (iterate all rings)
           let minX = Infinity,
             minY = Infinity,
             maxX = -Infinity,
@@ -146,11 +98,12 @@ export default function ElectionMap({
   const onClick = useCallback(
     (e: MapLayerMouseEvent) => {
       const feature = e.features?.[0];
+      // Prevent selection change if clicking a city (custom source check)
+      if (feature && feature.source === "election-cities") return;
+
       if (!feature) {
-        // Clicked outside
         setSelectedId(null);
         onProvinceSelect(null);
-        // Reset view to initial state if desired, or just deselect
         mapRef.current?.getMap().flyTo({
           center: [102.6, 18.5],
           zoom: 6,
@@ -162,7 +115,6 @@ export default function ElectionMap({
       const provinceId = feature.properties?.fips;
 
       if (selectedId === provinceId) {
-        // Deselect if clicking the same province
         setSelectedId(null);
         onProvinceSelect(null);
         mapRef.current?.getMap().flyTo({
@@ -211,8 +163,6 @@ export default function ElectionMap({
     const map = mapRef.current?.getMap();
     if (!map || !map.getSource("laos-provinces")) return;
 
-    // Clear previous selection (clear ALL to be safe or track previous)
-    // Since we don't track previous easily here without ref, iterating known IDs is safe
     provinceFeatureIds.featureMap.forEach((featureId) => {
       map.setFeatureState(
         { source: "laos-provinces", id: featureId },
@@ -220,7 +170,6 @@ export default function ElectionMap({
       );
     });
 
-    // Set new selection
     if (selectedId) {
       const featureId = provinceFeatureIds.featureMap.get(selectedId);
       if (featureId !== undefined) {
@@ -237,7 +186,6 @@ export default function ElectionMap({
     const map = mapRef.current?.getMap();
     if (!map || !map.getSource("laos-provinces")) return;
 
-    // Clear all hovers (simplest approach to avoid stuck hovers)
     provinceFeatureIds.featureMap.forEach((featureId) => {
       map.setFeatureState(
         { source: "laos-provinces", id: featureId },
@@ -245,7 +193,6 @@ export default function ElectionMap({
       );
     });
 
-    // Set new hover
     if (hoveredId) {
       const featureId = provinceFeatureIds.featureMap.get(hoveredId);
       if (featureId !== undefined) {
@@ -260,7 +207,7 @@ export default function ElectionMap({
   // Interaction Handlers (Mouse Move/Leave)
   const onMouseMove = useCallback((event: MapLayerMouseEvent) => {
     const feature = event.features && event.features[0];
-    if (feature) {
+    if (feature && feature.source === "laos-provinces") {
       setHoveredId(feature.properties?.fips);
     } else {
       setHoveredId(null);
@@ -269,10 +216,6 @@ export default function ElectionMap({
 
   const onMouseLeave = useCallback(() => {
     setHoveredId(null);
-  }, []);
-
-  const getCursor = useCallback((event: any) => {
-    return event.isHovering ? "pointer" : "grab";
   }, []);
 
   // Derived expressions
@@ -298,7 +241,7 @@ export default function ElectionMap({
         "laos-provinces": {
           type: "geojson",
           data: geoJson || { type: "FeatureCollection", features: [] },
-          promoteId: "fips", // CRITICAL: Use 'fips' property as the feature ID for state
+          promoteId: "fips",
         },
       },
       layers: [
@@ -375,6 +318,42 @@ export default function ElectionMap({
         <NavigationControl position="top-right" showCompass={false} />
         <ScaleControl position="bottom-right" />
         <FullscreenControl position="top-right" />
+
+        {/* City Markers Layer - Overlay on top of base styles */}
+        {citiesGeoJson && (
+          <Source
+            id="election-cities"
+            type="geojson"
+            data={citiesGeoJson as any}
+          >
+            <Layer
+              id="cities-circle"
+              type="circle"
+              paint={{
+                "circle-color": "#ffffff",
+                "circle-radius": 5,
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "#000000",
+              }}
+            />
+            <Layer
+              id="cities-label"
+              type="symbol"
+              layout={{
+                "text-field": ["get", "name"],
+                "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+                "text-size": 12,
+                "text-offset": [0, 1.25],
+                "text-anchor": "top",
+              }}
+              paint={{
+                "text-color": "#000000",
+                "text-halo-color": "#ffffff",
+                "text-halo-width": 2,
+              }}
+            />
+          </Source>
+        )}
       </ReactMap>
 
       {/* Modern Glassmorphic Legend Overlay */}
