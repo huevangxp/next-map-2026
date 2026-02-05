@@ -284,7 +284,7 @@ export default function ElectionMap({
 
   return (
     <div className="w-full h-full relative group">
-      <Map
+      <ReactMap
         ref={mapRef}
         initialViewState={{
           longitude: 102.6,
