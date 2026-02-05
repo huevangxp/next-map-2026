@@ -10,7 +10,7 @@ export default function Home() {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/laos.geojson")
+    fetch("/data/la.json")
       .then((res) => res.json())
       .then((data) => setGeoJson(data));
   }, []);
