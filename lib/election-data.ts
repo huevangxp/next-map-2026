@@ -12,7 +12,7 @@ export interface ProvinceElectionData {
   candidate: string;
 }
 
-export const electionData: ElectionResult[] = [
+export const electionData: ProvinceElectionData[] = [
   {
     id: "LA01",
     provinceName: "Attapeu",
