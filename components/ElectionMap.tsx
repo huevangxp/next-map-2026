@@ -38,7 +38,7 @@ export default function ElectionMap({
           ["get", "fips"], // Assuming property 'fips' from geojson matches 'id' in electionData
           ...electionData.flatMap((d) => [d.id, d.partyColor]),
           "#cccccc", // Default color
-        ],
+        ] as any,
         "fill-opacity": 0.7,
         "fill-outline-color": "#FFFFFF",
       },
