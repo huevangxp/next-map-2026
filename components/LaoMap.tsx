@@ -71,7 +71,7 @@ export default function LaoMap() {
         <Source
           id="laos-provinces"
           type="geojson"
-          data="/laos.geojson"
+          data="/data/la.json"
           promoteId="fips"
         >
           <Layer
