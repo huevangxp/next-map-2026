@@ -31,6 +31,7 @@ export default function ElectionMap({
     return {
       id: "data",
       type: "fill",
+      source: "laos-provinces",
       paint: {
         "fill-color": [
           "match",
@@ -47,6 +48,7 @@ export default function ElectionMap({
   const borderLayer: LineLayer = {
     id: "outline",
     type: "line",
+    source: "laos-provinces",
     paint: {
       "line-color": "#ffffff",
       "line-width": 1,
