@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div>
       {/* Map Section */}
-      <section className="w-full flex justify-center">
+      <section className="w-full h-full">
         <div className="w-full ">
           <LaoMap />
         </div>
