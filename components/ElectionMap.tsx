@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useCallback, useRef, useState, useEffect } from "react";
-import Map, {
+import ReactMap, {
   NavigationControl,
   ScaleControl,
   FullscreenControl,
