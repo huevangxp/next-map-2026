@@ -8,7 +8,7 @@ import Map, {
   Source,
   Layer,
 } from "react-map-gl/maplibre";
-import "maplibre-gl/dist/maplibre-gl.css";
+import { electionData } from "@/lib/election-data";
 
 export default function LaoMap() {
   return (
@@ -28,7 +28,12 @@ export default function LaoMap() {
             id="laos-provinces-fill"
             type="fill"
             paint={{
-              "fill-color": "#CE1126", // Initial default, will be data-driven later
+              "fill-color": [
+                "match",
+                ["get", "fips"],
+                ...electionData.flatMap((d) => [d.id, d.partyColor]),
+                "#cccccc",
+              ] as any,
               "fill-opacity": 0.5,
               "fill-outline-color": "#FFFFFF",
             }}
