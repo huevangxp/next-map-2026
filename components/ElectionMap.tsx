@@ -1,12 +1,10 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useRef } from "react";
 import Map, {
   NavigationControl,
   ScaleControl,
   FullscreenControl,
-  Source,
-  Layer,
 } from "react-map-gl/maplibre";
 import type {
   FillLayerSpecification as FillLayer,
@@ -27,33 +25,58 @@ export default function ElectionMap({
   electionData,
   onProvinceSelect,
 }: ElectionMapProps) {
-  const dataLayer: FillLayer = useMemo(() => {
-    return {
-      id: "data",
-      type: "fill",
-      source: "laos-provinces",
-      paint: {
-        "fill-color": [
-          "match",
-          ["get", "fips"], // Assuming property 'fips' from geojson matches 'id' in electionData
-          ...electionData.flatMap((d) => [d.id, d.partyColor]),
-          "#cccccc", // Default color
-        ] as any,
-        "fill-opacity": 0.7,
-        "fill-outline-color": "#FFFFFF",
-      },
-    };
-  }, [electionData]);
+  const mapRef = useRef<any>(null);
 
-  const borderLayer: LineLayer = {
-    id: "outline",
-    type: "line",
-    source: "laos-provinces",
-    paint: {
-      "line-color": "#ffffff",
-      "line-width": 1,
-    },
-  };
+  const mapStyle = useMemo(() => {
+    return {
+      version: 8 as const,
+      sources: {
+        osm: {
+          type: "raster",
+          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+          tileSize: 256,
+          attribution: "&copy; OpenStreetMap contributors",
+        },
+        "laos-provinces": {
+          type: "geojson",
+          data: geoJson || { type: "FeatureCollection", features: [] },
+        },
+      },
+      layers: [
+        {
+          id: "osm-tiles",
+          type: "raster",
+          source: "osm",
+          minzoom: 0,
+          maxzoom: 19,
+        },
+        {
+          id: "data",
+          type: "fill",
+          source: "laos-provinces",
+          paint: {
+            "fill-color": [
+              "match",
+              ["get", "fips"],
+              ...electionData.flatMap((d) => [d.id, d.partyColor]),
+              "#cccccc",
+            ],
+            "fill-opacity": 0.7,
+            "fill-outline-color": "#FFFFFF",
+          },
+        },
+        {
+          id: "outline",
+          type: "line",
+          source: "laos-provinces",
+          paint: {
+            "line-color": "#ffffff",
+            "line-width": 1,
+          },
+        },
+      ],
+    };
+  }, [geoJson, electionData]);
 
   const onClick = useCallback(
     (event: any) => {
@@ -71,21 +94,19 @@ export default function ElectionMap({
   return (
     <div className="w-full h-full relative group">
       <Map
+        ref={mapRef}
         initialViewState={{
           longitude: 102.6,
           latitude: 18.5,
           zoom: 6,
         }}
+        minZoom={4}
+        maxZoom={12}
         style={{ width: "100%", height: "100%" }}
-        mapStyle="https://demotiles.maplibre.org/style.json"
+        mapStyle={mapStyle as any}
         interactiveLayerIds={["data"]}
         onClick={onClick}
       >
-        <Source type="geojson" data={geoJson}>
-          <Layer {...dataLayer} />
-          <Layer {...borderLayer} />
-        </Source>
-
         <NavigationControl position="top-right" />
         <ScaleControl />
         <FullscreenControl position="top-right" />
