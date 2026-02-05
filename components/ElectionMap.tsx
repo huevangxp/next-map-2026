@@ -7,11 +7,9 @@ import Map, {
   FullscreenControl,
   Source,
   Layer,
+  FillLayer,
+  LineLayer,
 } from "react-map-gl/maplibre";
-import type {
-  FillLayerSpecification as FillLayer,
-  LineLayerSpecification as LineLayer,
-} from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import type { ProvinceElectionData } from "@/lib/election-data";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -31,14 +29,13 @@ export default function ElectionMap({
     return {
       id: "data",
       type: "fill",
-      source: "laos-provinces",
       paint: {
         "fill-color": [
           "match",
           ["get", "fips"], // Assuming property 'fips' from geojson matches 'id' in electionData
           ...electionData.flatMap((d) => [d.id, d.partyColor]),
           "#cccccc", // Default color
-        ] as any,
+        ],
         "fill-opacity": 0.7,
         "fill-outline-color": "#FFFFFF",
       },
@@ -48,7 +45,6 @@ export default function ElectionMap({
   const borderLayer: LineLayer = {
     id: "outline",
     type: "line",
-    source: "laos-provinces",
     paint: {
       "line-color": "#ffffff",
       "line-width": 1,
