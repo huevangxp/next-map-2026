@@ -7,9 +7,8 @@ import Map, {
   FullscreenControl,
   Source,
   Layer,
-  FillLayer,
-  LineLayer,
 } from "react-map-gl/maplibre";
+import type { FillLayer, LineLayer } from "react-map-gl";
 import type { FeatureCollection } from "geojson";
 import type { ProvinceElectionData } from "@/lib/election-data";
 import "maplibre-gl/dist/maplibre-gl.css";
