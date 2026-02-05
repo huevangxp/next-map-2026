@@ -8,6 +8,7 @@ import Map, {
   Source,
   Layer,
 } from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { electionData } from "@/lib/election-data";
 
 export default function LaoMap() {
