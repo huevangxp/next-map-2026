@@ -228,67 +228,6 @@ export default function ElectionMap({
     ];
   }, [electionData]);
 
-  const mapStyle = useMemo(() => {
-    return {
-      version: 8 as const,
-      sources: {
-        osm: {
-          type: "raster",
-          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-          tileSize: 256,
-          attribution: "&copy; OpenStreetMap contributors",
-        },
-        "laos-provinces": {
-          type: "geojson",
-          data: geoJson || { type: "FeatureCollection", features: [] },
-          promoteId: "fips",
-        },
-      },
-      layers: [
-        {
-          id: "osm-tiles",
-          type: "raster",
-          source: "osm",
-          minzoom: 0,
-          maxzoom: 19,
-        },
-        {
-          id: "data",
-          type: "fill",
-          source: "laos-provinces",
-          paint: {
-            "fill-color": fillColorExpression as any,
-            "fill-opacity": [
-              "case",
-              ["boolean", ["feature-state", "selected"], false],
-              0.8,
-              ["boolean", ["feature-state", "hovered"], false],
-              0.7,
-              0.5,
-            ] as any,
-            "fill-outline-color": "#FFFFFF",
-          },
-        },
-        {
-          id: "outline",
-          type: "line",
-          source: "laos-provinces",
-          paint: {
-            "line-color": "#ffffff",
-            "line-width": [
-              "case",
-              ["boolean", ["feature-state", "selected"], false],
-              3,
-              ["boolean", ["feature-state", "hovered"], false],
-              2,
-              1,
-            ] as any,
-          },
-        },
-      ],
-    };
-  }, [geoJson, fillColorExpression]);
-
   const parties = useMemo(() => {
     const uniqueParties = new Map<string, string>();
     electionData.forEach((d) => {
@@ -309,12 +248,51 @@ export default function ElectionMap({
         minZoom={4}
         maxZoom={12}
         style={{ width: "100%", height: "100%" }}
-        mapStyle={mapStyle as any}
-        interactiveLayerIds={["data"]}
+        mapStyle="https://demotiles.maplibre.org/style.json"
+        interactiveLayerIds={["laos-provinces-fill"]}
         onClick={onClick}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
       >
+        <Source
+          id="laos-provinces"
+          type="geojson"
+          data={geoJson || { type: "FeatureCollection", features: [] }}
+          promoteId="fips"
+        >
+          <Layer
+            id="laos-provinces-fill"
+            type="fill"
+            paint={{
+              "fill-color": fillColorExpression as any,
+              "fill-opacity": [
+                "case",
+                ["boolean", ["feature-state", "selected"], false],
+                0.8,
+                ["boolean", ["feature-state", "hovered"], false],
+                0.7,
+                0.5,
+              ] as any,
+              "fill-outline-color": "#FFFFFF",
+            }}
+          />
+          <Layer
+            id="laos-provinces-line"
+            type="line"
+            paint={{
+              "line-color": "#ffffff",
+              "line-width": [
+                "case",
+                ["boolean", ["feature-state", "selected"], false],
+                3,
+                ["boolean", ["feature-state", "hovered"], false],
+                2,
+                1,
+              ] as any,
+            }}
+          />
+        </Source>
+
         <NavigationControl position="top-right" showCompass={false} />
         <ScaleControl position="bottom-right" />
         <FullscreenControl position="top-right" />
