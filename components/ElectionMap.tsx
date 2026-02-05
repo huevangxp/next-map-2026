@@ -282,16 +282,8 @@ export default function ElectionMap({
     };
   }, [geoJson, fillColorExpression]);
 
-  const parties = useMemo(() => {
-    const uniqueParties = new Map<string, string>();
-    electionData.forEach((d) => {
-      uniqueParties.set(d.winningParty, d.partyColor);
-    });
-    return Array.from(uniqueParties.entries());
-  }, [electionData]);
-
   return (
-    <div className="w-full h-full relative group bg-zinc-100 dark:bg-zinc-950">
+    <div className="w-full h-full relative group">
       <ReactMap
         ref={mapRef}
         initialViewState={{
@@ -308,64 +300,32 @@ export default function ElectionMap({
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
       >
-        <NavigationControl
-          position="top-right"
-          showCompass={false}
-          className="!mr-4 !mt-4"
-        />
-        <ScaleControl
-          position="bottom-right"
-          className="!mb-4 !mr-4 bg-white/50 backdrop-blur-sm border-none text-zinc-800"
-        />
-        <FullscreenControl position="top-right" className="!mr-4" />
+        <NavigationControl position="top-right" />
+        <ScaleControl />
+        <FullscreenControl position="top-right" />
       </ReactMap>
 
-      {/* Modern Glassmorphic Legend Overlay */}
-      <div className="absolute top-6 left-6 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md p-5 rounded-2xl shadow-2xl border border-zinc-200/50 dark:border-zinc-700/50 min-w-[200px] animate-fadeIn transition-all hover:bg-white/95 dark:hover:bg-zinc-900/95">
-        <div className="flex flex-col">
-          <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 tracking-tight leading-snug">
-            Lao Election Map
-          </h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mb-4">
-            2026 Provincial Results
-          </p>
-
-          <div className="space-y-3">
-            <div className="text-[10px] uppercase font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">
-              Leading Parties
-            </div>
-            {parties.map(([party, color]) => (
-              <div key={party} className="flex items-center gap-3 group">
-                <span
-                  className="w-3 h-3 rounded-full shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-transform group-hover:scale-110"
-                  style={{ backgroundColor: color }}
-                  aria-hidden="true"
-                />
-                <span className="text-sm text-zinc-700 dark:text-zinc-300 font-medium group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
-                  {party}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-            <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
-              <svg
-                className="w-3 h-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span>Click province for details</span>
-            </div>
-          </div>
+      {/* Overlay to show Lao colors integration */}
+      <div className="absolute top-4 left-4 bg-white/90 dark:bg-black/90 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-gray-100 dark:border-gray-800 z-10 pointer-events-none">
+        <h3 className="font-bold text-gray-900 dark:text-white mb-2">
+          Lao PDR Election Map
+        </h3>
+        <p className="text-xs text-gray-500 mb-2">
+          Click on a province to see details
+        </p>
+        <div className="flex gap-2">
+          <div
+            className="w-6 h-6 rounded-full bg-lao-red shadow-sm transform hover:scale-110 transition-transform"
+            title="Lao Red"
+          ></div>
+          <div
+            className="w-6 h-6 rounded-full bg-lao-blue shadow-sm transform hover:scale-110 transition-transform"
+            title="Lao Blue"
+          ></div>
+          <div
+            className="w-6 h-6 rounded-full bg-lao-white border border-gray-200 shadow-sm transform hover:scale-110 transition-transform"
+            title="Lao White"
+          ></div>
         </div>
       </div>
     </div>
