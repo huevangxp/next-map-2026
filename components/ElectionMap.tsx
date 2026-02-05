@@ -8,7 +8,10 @@ import Map, {
   Source,
   Layer,
 } from "react-map-gl/maplibre";
-import type { FillLayer, LineLayer } from "maplibre-gl";
+import type {
+  FillLayerSpecification as FillLayer,
+  LineLayerSpecification as LineLayer,
+} from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import type { ProvinceElectionData } from "@/lib/election-data";
 import "maplibre-gl/dist/maplibre-gl.css";
