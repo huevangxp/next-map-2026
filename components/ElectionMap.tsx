@@ -30,66 +30,186 @@ export default function ElectionMap({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Sync selectedId from simple prop if needed, or manage it internally
-  // Here we assume the parent controls selection, so we watch props.
-  // Actually, let's track the internal state for featureState updates.
+  // Calculate province bounds and feature mapping
+  const provinceFeatureIds = useMemo(() => {
+    const featureMap = new Map<string, string>(); // Map fips -> fips (since we use promoteId: 'fips', feature.id IS fips)
+    const boundsMap = new Map<string, [number, number, number, number]>();
 
-  // Effect to update selected feature state
-  useEffect(() => {
-    if (!mapRef.current) return;
+    if (!geoJson) return { featureMap, boundsMap };
 
-    // Clear previous selection
-    if (selectedId) {
-      const map = mapRef.current.getMap(); // react-map-gl ref exposes getMap()
-      if (map && map.getSource("laos-provinces")) {
-        map.setFeatureState(
-          { source: "laos-provinces", id: selectedId },
-          { selected: false },
-        );
+    geoJson.features.forEach((feature: any) => {
+      const provinceId = feature.properties?.fips;
+      if (provinceId) {
+        // Since we set promoteId: 'fips', the feature ID state will be keyed by 'fips'.
+        featureMap.set(provinceId, provinceId);
+
+        // Calculate bounds for this province
+        if (feature.geometry?.type === "Polygon") {
+          const coordinates = feature.geometry.coordinates[0];
+          let minX = Infinity,
+            minY = Infinity,
+            maxX = -Infinity,
+            maxY = -Infinity;
+          coordinates.forEach(([lon, lat]: [number, number]) => {
+            minX = Math.min(minX, lon);
+            minY = Math.min(minY, lat);
+            maxX = Math.max(maxX, lon);
+            maxY = Math.max(maxY, lat);
+          });
+          boundsMap.set(provinceId, [minX, minY, maxX, maxY]);
+        } else if (feature.geometry?.type === "MultiPolygon") {
+          // Simple bounds for MultiPolygon (iterate all rings)
+          let minX = Infinity,
+            minY = Infinity,
+            maxX = -Infinity,
+            maxY = -Infinity;
+          feature.geometry.coordinates.forEach((polygon: any[]) => {
+            polygon[0].forEach(([lon, lat]: [number, number]) => {
+              minX = Math.min(minX, lon);
+              minY = Math.min(minY, lat);
+              maxX = Math.max(maxX, lon);
+              maxY = Math.max(maxY, lat);
+            });
+          });
+          boundsMap.set(provinceId, [minX, minY, maxX, maxY]);
+        }
       }
-    }
+    });
+    return { featureMap, boundsMap };
+  }, [geoJson]);
 
-    // Set new selection
-    // We need to know the ID passed from parent. Parent passes 'provinceId'.
-    // We need to store previous selection to clear it.
-    // Let's use a ref for previous selection to avoid re-renders or complicated dep arrays?
-    // Actually, react-map-gl handles some of this, but raw mapbox/maplibre logic is robust.
-  }, [selectedId]);
+  // Handle click on provinces
+  const onClick = useCallback(
+    (e: MapLayerMouseEvent) => {
+      const feature = e.features?.[0];
+      if (!feature) {
+        // Clicked outside
+        setSelectedId(null);
+        onProvinceSelect(null);
+        // Reset view to initial state if desired, or just deselect
+        mapRef.current?.getMap().flyTo({
+          center: [102.6, 18.5],
+          zoom: 6,
+          duration: 1000,
+        });
+        return;
+      }
 
-  // Better approach: Listen to onProvinceSelect from parent, but also need to know the *feature id* to set state.
-  // The geojson features need 'id' property at top level for setFeatureState to work.
-  // We assume the geojson features have numeric or string IDs.
+      const provinceId = feature.properties?.fips;
 
-  // Let's update the feature state when `hoveredId` changes.
+      if (selectedId === provinceId) {
+        // Deselect if clicking the same province
+        setSelectedId(null);
+        onProvinceSelect(null);
+        mapRef.current?.getMap().flyTo({
+          center: [102.6, 18.5],
+          zoom: 6,
+          duration: 1000,
+        });
+      } else {
+        setSelectedId(provinceId);
+        onProvinceSelect(provinceId);
+      }
+    },
+    [selectedId, onProvinceSelect],
+  );
+
+  // Fly to province when selected
   useEffect(() => {
     const map = mapRef.current?.getMap();
-    if (!map) return;
+    if (!map || !selectedId) return;
 
-    if (hoveredId) {
-      map.setFeatureState(
-        { source: "laos-provinces", id: hoveredId },
-        { hovered: true },
+    const bounds = provinceFeatureIds.boundsMap.get(selectedId);
+    if (bounds) {
+      const [minX, minY, maxX, maxY] = bounds;
+      const padding = 50;
+
+      map.fitBounds(
+        [
+          [minX, minY],
+          [maxX, maxY],
+        ],
+        {
+          padding: {
+            top: padding,
+            bottom: padding,
+            left: padding,
+            right: padding,
+          },
+          duration: 1000,
+        },
       );
     }
+  }, [selectedId, provinceFeatureIds]);
 
-    return () => {
-      if (hoveredId && map.getSource("laos-provinces")) {
+  // Update feature state when selection changes
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map || !map.getSource("laos-provinces")) return;
+
+    // Clear previous selection (clear ALL to be safe or track previous)
+    // Since we don't track previous easily here without ref, iterating known IDs is safe
+    provinceFeatureIds.featureMap.forEach((featureId) => {
+      map.setFeatureState(
+        { source: "laos-provinces", id: featureId },
+        { selected: false },
+      );
+    });
+
+    // Set new selection
+    if (selectedId) {
+      const featureId = provinceFeatureIds.featureMap.get(selectedId);
+      if (featureId !== undefined) {
         map.setFeatureState(
-          { source: "laos-provinces", id: hoveredId },
-          { hovered: false },
+          { source: "laos-provinces", id: featureId },
+          { selected: true },
         );
       }
-    };
-  }, [hoveredId]);
+    }
+  }, [selectedId, provinceFeatureIds]);
 
-  // Handle Selection Feature State
-  // We need to find the feature ID corresponding to the selected province ID (fips).
-  // This logic works best if the feature.id MATCHES the fips code.
-  // If feature.id is not set or different, we must rely on 'promoteId' or matching properties.
-  // For this example, let's assume feature.properties.fips IS the id we use.
-  // We will iterate features to find the one to select? No, setFeatureState requires feature.id (top level).
-  // If the geojson doesn't have top-level IDs, we can't use setFeatureState easily without promoteId.
-  // Let's assume we configure the source with `promoteId: 'fips'`.
+  // Hover state effect
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map || !map.getSource("laos-provinces")) return;
+
+    // Clear all hovers (simplest approach to avoid stuck hovers)
+    provinceFeatureIds.featureMap.forEach((featureId) => {
+      map.setFeatureState(
+        { source: "laos-provinces", id: featureId },
+        { hovered: false },
+      );
+    });
+
+    // Set new hover
+    if (hoveredId) {
+      const featureId = provinceFeatureIds.featureMap.get(hoveredId);
+      if (featureId !== undefined) {
+        map.setFeatureState(
+          { source: "laos-provinces", id: featureId },
+          { hovered: true },
+        );
+      }
+    }
+  }, [hoveredId, provinceFeatureIds]);
+
+  // Interaction Handlers (Mouse Move/Leave)
+  const onMouseMove = useCallback((event: MapLayerMouseEvent) => {
+    const feature = event.features && event.features[0];
+    if (feature) {
+      setHoveredId(feature.properties?.fips);
+    } else {
+      setHoveredId(null);
+    }
+  }, []);
+
+  const onMouseLeave = useCallback(() => {
+    setHoveredId(null);
+  }, []);
+
+  const getCursor = useCallback((event: any) => {
+    return event.isHovering ? "pointer" : "grab";
+  }, []);
 
   // Derived expressions
   const fillColorExpression = useMemo(() => {
@@ -152,6 +272,8 @@ export default function ElectionMap({
               "case",
               ["boolean", ["feature-state", "selected"], false],
               3,
+              ["boolean", ["feature-state", "hovered"], false],
+              2,
               1,
             ] as any,
           },
@@ -159,64 +281,6 @@ export default function ElectionMap({
       ],
     };
   }, [geoJson, fillColorExpression]);
-
-  // Interaction Handlers
-  const onClick = useCallback(
-    (event: MapLayerMouseEvent) => {
-      const feature = event.features && event.features[0];
-      if (feature) {
-        const id = feature.properties?.fips;
-        onProvinceSelect(id);
-
-        // Update local selected state for visual feedback
-        // First clear old
-        const map = mapRef.current?.getMap();
-        if (selectedId && map) {
-          map.setFeatureState(
-            { source: "laos-provinces", id: selectedId },
-            { selected: false },
-          );
-        }
-
-        if (id && map) {
-          map.setFeatureState(
-            { source: "laos-provinces", id },
-            { selected: true },
-          );
-          setSelectedId(id);
-        }
-      } else {
-        onProvinceSelect(null);
-        // Clear selection
-        const map = mapRef.current?.getMap();
-        if (selectedId && map) {
-          map.setFeatureState(
-            { source: "laos-provinces", id: selectedId },
-            { selected: false },
-          );
-        }
-        setSelectedId(null);
-      }
-    },
-    [onProvinceSelect, selectedId],
-  );
-
-  const onMouseMove = useCallback((event: MapLayerMouseEvent) => {
-    const feature = event.features && event.features[0];
-    if (feature) {
-      setHoveredId(feature.properties?.fips);
-    } else {
-      setHoveredId(null);
-    }
-  }, []);
-
-  const onMouseLeave = useCallback(() => {
-    setHoveredId(null);
-  }, []);
-
-  const getCursor = useCallback((event: any) => {
-    return event.isHovering ? "pointer" : "grab";
-  }, []);
 
   return (
     <div className="w-full h-full relative group">
