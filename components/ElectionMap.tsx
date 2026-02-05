@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useCallback, useRef, useState, useEffect } from "react";
+import { useMemo, useCallback } from "react";
 import Map, {
   NavigationControl,
   ScaleControl,
   FullscreenControl,
-  MapLayerMouseEvent,
+  Source,
+  Layer,
 } from "react-map-gl/maplibre";
 import type {
   FillLayerSpecification as FillLayer,
@@ -26,216 +27,65 @@ export default function ElectionMap({
   electionData,
   onProvinceSelect,
 }: ElectionMapProps) {
-  const mapRef = useRef<any>(null);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  // Sync selectedId from simple prop if needed, or manage it internally
-  // Here we assume the parent controls selection, so we watch props.
-  // Actually, let's track the internal state for featureState updates.
-
-  // Effect to update selected feature state
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    // Clear previous selection
-    if (selectedId) {
-      const map = mapRef.current.getMap(); // react-map-gl ref exposes getMap()
-      if (map && map.getSource("laos-provinces")) {
-        map.setFeatureState(
-          { source: "laos-provinces", id: selectedId },
-          { selected: false },
-        );
-      }
-    }
-
-    // Set new selection
-    // We need to know the ID passed from parent. Parent passes 'provinceId'.
-    // We need to store previous selection to clear it.
-    // Let's use a ref for previous selection to avoid re-renders or complicated dep arrays?
-    // Actually, react-map-gl handles some of this, but raw mapbox/maplibre logic is robust.
-  }, [selectedId]);
-
-  // Better approach: Listen to onProvinceSelect from parent, but also need to know the *feature id* to set state.
-  // The geojson features need 'id' property at top level for setFeatureState to work.
-  // We assume the geojson features have numeric or string IDs.
-
-  // Let's update the feature state when `hoveredId` changes.
-  useEffect(() => {
-    const map = mapRef.current?.getMap();
-    if (!map) return;
-
-    if (hoveredId) {
-      map.setFeatureState(
-        { source: "laos-provinces", id: hoveredId },
-        { hovered: true },
-      );
-    }
-
-    return () => {
-      if (hoveredId && map.getSource("laos-provinces")) {
-        map.setFeatureState(
-          { source: "laos-provinces", id: hoveredId },
-          { hovered: false },
-        );
-      }
+  const dataLayer: FillLayer = useMemo(() => {
+    return {
+      id: "data",
+      type: "fill",
+      source: "laos-provinces",
+      paint: {
+        "fill-color": [
+          "match",
+          ["get", "fips"], // Assuming property 'fips' from geojson matches 'id' in electionData
+          ...electionData.flatMap((d) => [d.id, d.partyColor]),
+          "#cccccc", // Default color
+        ] as any,
+        "fill-opacity": 0.7,
+        "fill-outline-color": "#FFFFFF",
+      },
     };
-  }, [hoveredId]);
-
-  // Handle Selection Feature State
-  // We need to find the feature ID corresponding to the selected province ID (fips).
-  // This logic works best if the feature.id MATCHES the fips code.
-  // If feature.id is not set or different, we must rely on 'promoteId' or matching properties.
-  // For this example, let's assume feature.properties.fips IS the id we use.
-  // We will iterate features to find the one to select? No, setFeatureState requires feature.id (top level).
-  // If the geojson doesn't have top-level IDs, we can't use setFeatureState easily without promoteId.
-  // Let's assume we configure the source with `promoteId: 'fips'`.
-
-  // Derived expressions
-  const fillColorExpression = useMemo(() => {
-    return [
-      "match",
-      ["get", "fips"],
-      ...electionData.flatMap((d) => [d.id, d.partyColor]),
-      "#cccccc",
-    ];
   }, [electionData]);
 
-  const mapStyle = useMemo(() => {
-    return {
-      version: 8 as const,
-      sources: {
-        osm: {
-          type: "raster",
-          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-          tileSize: 256,
-          attribution: "&copy; OpenStreetMap contributors",
-        },
-        "laos-provinces": {
-          type: "geojson",
-          data: geoJson || { type: "FeatureCollection", features: [] },
-          promoteId: "fips", // CRITICAL: Use 'fips' property as the feature ID for state
-        },
-      },
-      layers: [
-        {
-          id: "osm-tiles",
-          type: "raster",
-          source: "osm",
-          minzoom: 0,
-          maxzoom: 19,
-        },
-        {
-          id: "data",
-          type: "fill",
-          source: "laos-provinces",
-          paint: {
-            "fill-color": fillColorExpression as any,
-            "fill-opacity": [
-              "case",
-              ["boolean", ["feature-state", "selected"], false],
-              0.8,
-              ["boolean", ["feature-state", "hovered"], false],
-              0.7,
-              0.5,
-            ] as any,
-            "fill-outline-color": "#FFFFFF",
-          },
-        },
-        {
-          id: "outline",
-          type: "line",
-          source: "laos-provinces",
-          paint: {
-            "line-color": "#ffffff",
-            "line-width": [
-              "case",
-              ["boolean", ["feature-state", "selected"], false],
-              3,
-              1,
-            ] as any,
-          },
-        },
-      ],
-    };
-  }, [geoJson, fillColorExpression]);
+  const borderLayer: LineLayer = {
+    id: "outline",
+    type: "line",
+    source: "laos-provinces",
+    paint: {
+      "line-color": "#ffffff",
+      "line-width": 1,
+    },
+  };
 
-  // Interaction Handlers
   const onClick = useCallback(
-    (event: MapLayerMouseEvent) => {
+    (event: any) => {
       const feature = event.features && event.features[0];
       if (feature) {
-        const id = feature.properties?.fips;
-        onProvinceSelect(id);
-
-        // Update local selected state for visual feedback
-        // First clear old
-        const map = mapRef.current?.getMap();
-        if (selectedId && map) {
-          map.setFeatureState(
-            { source: "laos-provinces", id: selectedId },
-            { selected: false },
-          );
-        }
-
-        if (id && map) {
-          map.setFeatureState(
-            { source: "laos-provinces", id },
-            { selected: true },
-          );
-          setSelectedId(id);
-        }
+        // Assuming 'fips' is the unique identifier in your GeoJSON properties
+        onProvinceSelect(feature.properties.fips);
       } else {
         onProvinceSelect(null);
-        // Clear selection
-        const map = mapRef.current?.getMap();
-        if (selectedId && map) {
-          map.setFeatureState(
-            { source: "laos-provinces", id: selectedId },
-            { selected: false },
-          );
-        }
-        setSelectedId(null);
       }
     },
-    [onProvinceSelect, selectedId],
+    [onProvinceSelect],
   );
-
-  const onMouseMove = useCallback((event: MapLayerMouseEvent) => {
-    const feature = event.features && event.features[0];
-    if (feature) {
-      setHoveredId(feature.properties?.fips);
-    } else {
-      setHoveredId(null);
-    }
-  }, []);
-
-  const onMouseLeave = useCallback(() => {
-    setHoveredId(null);
-  }, []);
-
-  const getCursor = useCallback((event: any) => {
-    return event.isHovering ? "pointer" : "grab";
-  }, []);
 
   return (
     <div className="w-full h-full relative group">
       <Map
-        ref={mapRef}
         initialViewState={{
           longitude: 102.6,
           latitude: 18.5,
           zoom: 6,
         }}
-        minZoom={4}
-        maxZoom={12}
         style={{ width: "100%", height: "100%" }}
-        mapStyle={mapStyle as any}
+        mapStyle="https://demotiles.maplibre.org/style.json"
         interactiveLayerIds={["data"]}
         onClick={onClick}
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
       >
+        <Source type="geojson" data={geoJson}>
+          <Layer {...dataLayer} />
+          <Layer {...borderLayer} />
+        </Source>
+
         <NavigationControl position="top-right" />
         <ScaleControl />
         <FullscreenControl position="top-right" />
