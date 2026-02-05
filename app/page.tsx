@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import ElectionMap from "@/components/ElectionMap";
 import { electionData, ProvinceElectionData } from "@/lib/election-data";
