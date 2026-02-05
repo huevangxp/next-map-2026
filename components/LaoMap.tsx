@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useCallback } from "react";
-import Map, {
+import ReactMap, {
   NavigationControl,
   ScaleControl,
   FullscreenControl,
@@ -55,8 +55,8 @@ export default function LaoMap() {
   );
 
   return (
-    <div className="w-full h-full relative group">
-      <Map
+    <div className="w-full h-full relative group bg-zinc-100 dark:bg-zinc-950">
+      <ReactMap
         ref={mapRef}
         initialViewState={{
           longitude: 102.6,
@@ -108,29 +108,56 @@ export default function LaoMap() {
           />
         </Source>
 
-        <NavigationControl position="top-right" />
-        <ScaleControl />
+        <NavigationControl position="top-right" showCompass={false} />
+        <ScaleControl position="bottom-right" />
         <FullscreenControl position="top-right" />
-      </Map>
+      </ReactMap>
 
-      {/* Overlay to show Lao colors integration */}
-      <div className="absolute top-4 left-4 bg-white/90 dark:bg-black/90 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-gray-100 dark:border-gray-800 z-10">
-        <h3 className="font-bold text-gray-900 dark:text-white mb-2">
+      {/* Modern Glassmorphic Info Overlay */}
+      <div className="absolute top-6 left-6 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md p-5 rounded-2xl shadow-2xl border border-zinc-200/50 dark:border-zinc-700/50 min-w-[220px] animate-fadeIn hover:bg-white/95 dark:hover:bg-zinc-900/95 transition-all">
+        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 mb-1 tracking-tight">
           Lao PDR
         </h3>
-        <div className="flex gap-2">
-          <div
-            className="w-6 h-6 rounded-full bg-lao-red shadow-sm transform hover:scale-110 transition-transform"
-            title="Lao Red"
-          ></div>
-          <div
-            className="w-6 h-6 rounded-full bg-lao-blue shadow-sm transform hover:scale-110 transition-transform"
-            title="Lao Blue"
-          ></div>
-          <div
-            className="w-6 h-6 rounded-full bg-lao-white border border-gray-200 shadow-sm transform hover:scale-110 transition-transform"
-            title="Lao White"
-          ></div>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mb-4">
+          National Colors & Identity
+        </p>
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 group">
+            <div
+              className="w-4 h-4 rounded-full bg-lao-red shadow-sm ring-1 ring-black/5 dark:ring-white/10 transform group-hover:scale-110 transition-transform"
+              title="Lao Red"
+            ></div>
+            <span className="text-sm text-zinc-600 dark:text-zinc-300 font-medium group-hover:text-lao-red transition-colors">
+              National Red
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 group">
+            <div
+              className="w-4 h-4 rounded-full bg-lao-blue shadow-sm ring-1 ring-black/5 dark:ring-white/10 transform group-hover:scale-110 transition-transform"
+              title="Lao Blue"
+            ></div>
+            <span className="text-sm text-zinc-600 dark:text-zinc-300 font-medium group-hover:text-lao-blue transition-colors">
+              National Blue
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 group">
+            <div
+              className="w-4 h-4 rounded-full bg-lao-white border border-gray-200 dark:border-gray-600 shadow-sm transform group-hover:scale-110 transition-transform"
+              title="Lao White"
+            ></div>
+            <span className="text-sm text-zinc-600 dark:text-zinc-300 font-medium group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
+              Pure White
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
+          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
+            Select provinces for details
+          </span>
         </div>
       </div>
     </div>
