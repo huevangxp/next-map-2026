@@ -40,6 +40,30 @@ export default function Home() {
               Lao Election 2026
             </h1>
 
+            <div className="mb-6">
+              <label
+                htmlFor="province-select"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Select Province
+              </label>
+              <select
+                id="province-select"
+                className="w-full p-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block"
+                value={selectedProvince || ""}
+                onChange={(e) => handleProvinceSelect(e.target.value || null)}
+              >
+                <option value="">-- Choose a province --</option>
+                {[...electionData]
+                  .sort((a, b) => a.provinceName.localeCompare(b.provinceName))
+                  .map((province) => (
+                    <option key={province.id} value={province.id}>
+                      {province.provinceName}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
             {selectedProvince ? (
               (() => {
                 const data = electionData.find(
