@@ -1,4 +1,9 @@
-export interface ElectionResult {
+export type Party = {
+  name: string;
+  color: string;
+};
+
+export interface ProvinceElectionData {
   id: string; // FIPS or HASC code or Name
   provinceName: string;
   totalVotes: number;
