@@ -303,7 +303,7 @@ export default function ElectionMap({
         <NavigationControl position="top-right" />
         <ScaleControl />
         <FullscreenControl position="top-right" />
-      </Map>
+      </ReactMap>
 
       {/* Overlay to show Lao colors integration */}
       <div className="absolute top-4 left-4 bg-white/90 dark:bg-black/90 backdrop-blur-sm p-4 rounded-lg shadow-lg border border-gray-100 dark:border-gray-800 z-10 pointer-events-none">
