@@ -1,8 +1,7 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import ElectionMap from "@/components/ElectionMap";
 import { electionData, ProvinceElectionData } from "@/lib/election-data";
+import { cityData } from "@/lib/city-data";
 import type { FeatureCollection } from "geojson";
 
 export default function Home() {
@@ -69,6 +68,10 @@ export default function Home() {
                 const data = electionData.find(
                   (d) => d.id === selectedProvince,
                 );
+                const provinceCities = cityData.filter(
+                  (c) => c.provinceId === selectedProvince,
+                );
+
                 if (!data)
                   return <p className="text-gray-500">No data available</p>;
                 return (
@@ -117,6 +120,28 @@ export default function Home() {
                           {data.totalVotes.toLocaleString()}
                         </span>
                       </div>
+
+                      {/* City List */}
+                      {provinceCities.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">
+                            Major Cities / Districts
+                          </h3>
+                          <div className="grid grid-cols-1 gap-2">
+                            {provinceCities.map((city, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center p-2 rounded bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-100 dark:border-gray-700/50 transition-all"
+                              >
+                                <div className="w-2 h-2 rounded-full bg-blue-500 mr-3"></div>
+                                <span className="text-gray-800 dark:text-gray-200 text-sm font-medium">
+                                  {city.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
