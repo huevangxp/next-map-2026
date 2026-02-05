@@ -308,9 +308,16 @@ export default function ElectionMap({
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
       >
-        <NavigationControl position="top-right" showCompass={false} />
-        <ScaleControl position="bottom-right" />
-        <FullscreenControl position="top-right" />
+        <NavigationControl
+          position="top-right"
+          showCompass={false}
+          className="!mr-4 !mt-4"
+        />
+        <ScaleControl
+          position="bottom-right"
+          className="!mb-4 !mr-4 bg-white/50 backdrop-blur-sm border-none text-zinc-800"
+        />
+        <FullscreenControl position="top-right" className="!mr-4" />
       </ReactMap>
 
       {/* Modern Glassmorphic Legend Overlay */}
