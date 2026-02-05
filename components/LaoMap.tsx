@@ -12,7 +12,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 export default function LaoMap() {
   return (
-    <div className="w-full h-[80vh] rounded-xl overflow-hidden shadow-xl border border-gray-200 dark:border-gray-800 relative group">
+    <div className="w-full h-full relative group">
       <Map
         initialViewState={{
           longitude: 102.6,
