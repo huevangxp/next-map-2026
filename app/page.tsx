@@ -11,7 +11,7 @@ export default function Home() {
 
         {/* Map Section */}
         <section className="w-full flex justify-center">
-          <div className="w-full max-w-5xl">
+          <div className="w-full ">
             <LaoMap />
           </div>
         </section>
