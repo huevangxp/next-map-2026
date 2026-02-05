@@ -1,12 +1,20 @@
 import Image from "next/image";
+import LaoMap from "@/components/LaoMap";
 
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-8 font-sans">
-      <main className="w-full max-w-4xl text-center space-y-12">
+      <main className="w-full max-w-6xl text-center space-y-12">
         <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-5xl">
           Lao Map Project
         </h1>
+
+        {/* Map Section */}
+        <section className="w-full flex justify-center">
+          <div className="w-full max-w-5xl">
+            <LaoMap />
+          </div>
+        </section>
 
         <div className="space-y-4">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
