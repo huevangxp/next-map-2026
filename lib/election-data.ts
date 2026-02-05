@@ -126,7 +126,7 @@ export const electionData: ProvinceElectionData[] = [
     candidate: "Xaysomphone Phomvihane",
   },
   {
-    id: "LA28",
+    id: "LA25",
     provinceName: "Xaisomboun",
     totalVotes: 35000,
     winningParty: "Lao Development Party",
