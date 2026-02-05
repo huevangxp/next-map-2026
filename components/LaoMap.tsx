@@ -1,20 +1,63 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useState, useCallback } from "react";
 import Map, {
   NavigationControl,
   ScaleControl,
   FullscreenControl,
   Source,
   Layer,
+  MapLayerMouseEvent,
 } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { electionData } from "@/lib/election-data";
 
 export default function LaoMap() {
+  const mapRef = useRef<any>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const onClick = useCallback(
+    (event: MapLayerMouseEvent) => {
+      const feature = event.features && event.features[0];
+      const map = mapRef.current?.getMap();
+
+      if (feature && map) {
+        const id = feature.properties?.fips;
+
+        // Clear previous selection
+        if (selectedId) {
+          map.setFeatureState(
+            { source: "laos-provinces", id: selectedId },
+            { selected: false },
+          );
+        }
+
+        // Toggle or select new
+        if (id && id !== selectedId) {
+          map.setFeatureState(
+            { source: "laos-provinces", id },
+            { selected: true },
+          );
+          setSelectedId(id);
+        } else {
+          setSelectedId(null);
+        }
+      } else if (map && selectedId) {
+        // Clicked nothing, clear selection
+        map.setFeatureState(
+          { source: "laos-provinces", id: selectedId },
+          { selected: false },
+        );
+        setSelectedId(null);
+      }
+    },
+    [selectedId],
+  );
+
   return (
     <div className="w-full h-full relative group">
       <Map
+        ref={mapRef}
         initialViewState={{
           longitude: 102.6,
           latitude: 18.5,
@@ -23,8 +66,14 @@ export default function LaoMap() {
         style={{ width: "100%", height: "100%" }}
         mapStyle="https://demotiles.maplibre.org/style.json"
         interactiveLayerIds={["laos-provinces-fill"]}
+        onClick={onClick}
       >
-        <Source id="laos-provinces" type="geojson" data="/laos.geojson">
+        <Source
+          id="laos-provinces"
+          type="geojson"
+          data="/laos.geojson"
+          promoteId="fips"
+        >
           <Layer
             id="laos-provinces-fill"
             type="fill"
@@ -35,7 +84,12 @@ export default function LaoMap() {
                 ...electionData.flatMap((d) => [d.id, d.partyColor]),
                 "#cccccc",
               ] as any,
-              "fill-opacity": 0.5,
+              "fill-opacity": [
+                "case",
+                ["boolean", ["feature-state", "selected"], false],
+                0.9,
+                0.5,
+              ] as any,
               "fill-outline-color": "#FFFFFF",
             }}
           />
@@ -44,7 +98,12 @@ export default function LaoMap() {
             type="line"
             paint={{
               "line-color": "#002868",
-              "line-width": 2,
+              "line-width": [
+                "case",
+                ["boolean", ["feature-state", "selected"], false],
+                3,
+                2,
+              ] as any,
             }}
           />
         </Source>
