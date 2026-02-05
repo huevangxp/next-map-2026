@@ -233,6 +233,8 @@ export default function ElectionMap({
         mapStyle={mapStyle as any}
         interactiveLayerIds={["data"]}
         onClick={onClick}
+        onMouseMove={onMouseMove}
+        onMouseLeave={onMouseLeave}
       >
         <NavigationControl position="top-right" />
         <ScaleControl />
