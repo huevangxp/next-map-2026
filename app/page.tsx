@@ -5,10 +5,8 @@ export default function Home() {
   return (
     <div>
       {/* Map Section */}
-      <section className="w-full h-full">
-        <div className="w-full ">
-          <LaoMap />
-        </div>
+      <section className="w-screen h-screen overflow-hidden">
+        <LaoMap />
       </section>
     </div>
   );
