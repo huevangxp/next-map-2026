@@ -13,13 +13,34 @@ export default function LaoMap() {
     <div className="w-full h-[600px] rounded-xl overflow-hidden shadow-xl border border-gray-200 dark:border-gray-800 relative group">
       <Map
         initialViewState={{
-          longitude: 102.4955,
-          latitude: 19.8563,
+          longitude: 102.6,
+          latitude: 18.5,
           zoom: 6,
         }}
         style={{ width: "100%", height: "100%" }}
         mapStyle="https://demotiles.maplibre.org/style.json"
+        interactiveLayerIds={["laos-provinces-fill"]}
       >
+        <Source id="laos-provinces" type="geojson" data="/laos.geojson">
+          <Layer
+            id="laos-provinces-fill"
+            type="fill"
+            paint={{
+              "fill-color": "#CE1126", // Initial default, will be data-driven later
+              "fill-opacity": 0.5,
+              "fill-outline-color": "#FFFFFF",
+            }}
+          />
+          <Layer
+            id="laos-provinces-line"
+            type="line"
+            paint={{
+              "line-color": "#002868",
+              "line-width": 2,
+            }}
+          />
+        </Source>
+
         <NavigationControl position="top-right" />
         <ScaleControl />
         <FullscreenControl position="top-right" />
