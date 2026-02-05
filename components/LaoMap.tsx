@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useMemo } from "react";
 import ReactMap, {
   NavigationControl,
   ScaleControl,
@@ -11,6 +9,7 @@ import ReactMap, {
 } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { electionData } from "@/lib/election-data";
+import { cityData } from "@/lib/city-data";
 
 export default function LaoMap() {
   const mapRef = useRef<any>(null);
@@ -22,6 +21,9 @@ export default function LaoMap() {
       const map = mapRef.current?.getMap();
 
       if (feature && map) {
+        // If clicked on a city, do nothing or handle differently (optional, but preventing map click logic from deselecting if clicking a city point might be good. For now let's assume cities are not interactive or just visual).
+        if (feature.source === "province-cities") return;
+
         const id = feature.properties?.fips;
 
         // Clear previous selection
@@ -53,6 +55,25 @@ export default function LaoMap() {
     },
     [selectedId],
   );
+
+  const citiesGeoJson = useMemo(() => {
+    if (!selectedId) return null;
+    const cities = cityData.filter((c) => c.provinceId === selectedId);
+    return {
+      type: "FeatureCollection",
+      features: cities.map((city, index) => ({
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: city.coordinates,
+        },
+        properties: {
+          name: city.name,
+          id: index,
+        },
+      })),
+    };
+  }, [selectedId]);
 
   return (
     <div className="w-full h-full relative group bg-zinc-100 dark:bg-zinc-950">
@@ -107,6 +128,41 @@ export default function LaoMap() {
             }}
           />
         </Source>
+
+        {citiesGeoJson && (
+          <Source
+            id="province-cities"
+            type="geojson"
+            data={citiesGeoJson as any}
+          >
+            <Layer
+              id="cities-circle"
+              type="circle"
+              paint={{
+                "circle-color": "#ffffff",
+                "circle-radius": 5,
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "#000000",
+              }}
+            />
+            <Layer
+              id="cities-label"
+              type="symbol"
+              layout={{
+                "text-field": ["get", "name"],
+                "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+                "text-size": 12,
+                "text-offset": [0, 1.25],
+                "text-anchor": "top",
+              }}
+              paint={{
+                "text-color": "#000000",
+                "text-halo-color": "#ffffff",
+                "text-halo-width": 2,
+              }}
+            />
+          </Source>
+        )}
 
         <NavigationControl position="top-right" showCompass={false} />
         <ScaleControl position="bottom-right" />
