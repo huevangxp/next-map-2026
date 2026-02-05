@@ -1,10 +1,12 @@
+```
 "use client";
 
-import { useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, useRef, useState, useEffect } from "react";
 import Map, {
   NavigationControl,
   ScaleControl,
   FullscreenControl,
+  MapLayerMouseEvent,
 } from "react-map-gl/maplibre";
 import type {
   FillLayerSpecification as FillLayer,
